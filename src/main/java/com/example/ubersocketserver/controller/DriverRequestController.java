@@ -1,5 +1,6 @@
 package com.example.ubersocketserver.controller;
 
+import com.example.ubersocketserver.Producers.KafkaProducerService;
 import com.example.ubersocketserver.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,18 @@ public class DriverRequestController {
 
     private final RestTemplate restTemplate;
 
-    public DriverRequestController(SimpMessagingTemplate simpMessagingTemplate,  RestTemplate restTemplate) {
+    private final KafkaProducerService kafkaProducerService;
+
+    public DriverRequestController(SimpMessagingTemplate simpMessagingTemplate,  RestTemplate restTemplate, KafkaProducerService kafkaProducerService) {
         this.simpMessagingTemplate = simpMessagingTemplate;
         this.restTemplate = restTemplate;
+        this.kafkaProducerService = kafkaProducerService;
+    }
+
+    @GetMapping
+    public Boolean help() {
+        kafkaProducerService.publishMessage("sample-topic", "Hello World");
+        return true;
     }
 
     @PostMapping("/newride")
@@ -44,6 +54,8 @@ public class DriverRequestController {
                 .driverId(Optional.of(Long.parseLong(userId)))
                 .status("SCHEDULED")
                 .build();
+
         ResponseEntity<UpdateBookingResponseDto> result = this.restTemplate.postForEntity("http://localhost:8000/api/v1/booking/" + rideResponseDto.bookingId,  requestDto, UpdateBookingResponseDto.class);
+        kafkaProducerService.publishMessage("sample-topic", "Hello World");
     }
 }
