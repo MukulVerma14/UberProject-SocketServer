@@ -55,7 +55,15 @@ public class DriverRequestController {
                 .status("SCHEDULED")
                 .build();
 
-        ResponseEntity<UpdateBookingResponseDto> result = this.restTemplate.postForEntity("http://localhost:8000/api/v1/booking/" + rideResponseDto.bookingId,  requestDto, UpdateBookingResponseDto.class);
+        try {
+            ResponseEntity<UpdateBookingResponseDto> result = this.restTemplate.postForEntity("http://localhost:8000/api/v1/booking/" + rideResponseDto.bookingId,  requestDto, UpdateBookingResponseDto.class);
+            simpMessagingTemplate.convertAndSend("/topic/rideResponse/" + userId, "ACCEPTED");
+            kafkaProducerService.publishMessage("sample-topic", "Ride assigned to Driver " + userId);
+        } catch (Exception e) {
+            System.out.println("Booking failed for driver " + userId + ". Error: " + e.getMessage());
+            simpMessagingTemplate.convertAndSend("/topic/rideResponse/" + userId, "ALREADY_TAKEN");
+        }
+
         kafkaProducerService.publishMessage("sample-topic", "Hello World");
     }
 }

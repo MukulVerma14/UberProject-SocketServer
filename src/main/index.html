@@ -4,64 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <script src="https://cdn.jsdelivr.net/sockjs/1.1.4/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-
 </head>
 <body>
-
-<div>
-
-    <!-- <button onclick="connect()">Connect</button> -->
-</div>
-
 <div>
     <input type="text" id="name" placeholder="name">
     <input type="text" id="message" placeholder="message">
     <button onclick="submit()">Submit</button>
 </div>
-
-<ul id="list">
-
-</ul>
-
-<script>
+<Script>
     var stompClient = null;
-
     document.addEventListener("DOMContentLoaded", () => {
         connect();
     })
     function connect() {
-        const socket = new SockJS("http://localhost:8080/ws")
+        const socket = new SockJS('http://localhost:3002/ws');
         stompClient = Stomp.over(socket);
-        stompClient.connect({}, function () {
-            console.log("connected");
+        stompClient.connect({}, function() {
+            console.log("Connected");
             stompClient.subscribe("/topic/ping", function(message) {
-                console.log("received a new message from server", message);
+                console.log("received a message frpm server", message);
             })
             // stompClient.subscribe("/topic/scheduled", function(message) {
-            //     console.log("received a new scheduled message from server", message);
-            //     const li = document.createElement("li");
-            //     li.textContent = message.body;
-            //     document.getElementById("list").appendChild(li);
+            //     console.log("received a scheduled message frpm server", message);
             // })
-            stompClient.subscribe("/topic/message/123", function (data) {
+            stompClient.subscribe("/topic/message/123", function(data) {
                 const msg = JSON.parse(data.body);
-                console.log(typeof msg)
                 const li = document.createElement("li");
-                li.textContent = `${msg.name} : ${msg.timeStamp} - ${msg.message}` ;
-                document.getElementById("list").appendChild(li);
+                li.appendChild(document.createTextNode(msg.name + ": " + msg.message));
             })
+            stompClient.subscribe("/topic/rideRequest", function(data) {
+                const rideRequest = JSON.parse(data.body); // rideRequestDto
+                const bookingId = rideRequest.bookingId;
+                const passengerId = rideRequest.passengerId;
+
+                const response = confirm(`You have a new ride request from passenger : ${passengerId}. Do you accept it?`);
+                if (response) {
+                    const driverId = prompt("Please enter your driver ID:");
+                    stompClient.subscribe(`/topic/rideResponse/${driverId}`, function(status) {
+                        if (status.body === "ACCEPTED") {
+                            alert("✅ Success! The ride is yours.");
+                        } else if (status.body === "ALREADY_TAKEN") {
+                            alert("❌ Too late! This ride was already accepted by another driver.");
+                        }
+                    });
+
+                    stompClient.send(`/app/rideResponse/${driverId}`, {}, JSON.stringify({
+                        response: true,
+                        bookingId: bookingId
+                    }));
+                }
+            });
         })
     }
-
     function submit() {
         const name = document.getElementById("name").value;
         const message = document.getElementById("message").value;
-        stompClient.send("/app/chat/123", {}, JSON.stringify({ name, message}));
+        stompClient.send("/app/chat/123", {}, JSON.stringify({name, message}));
     }
-
-</script>
-
+</Script>
 </body>
 </html>
