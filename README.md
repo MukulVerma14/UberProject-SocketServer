@@ -49,7 +49,7 @@ flowchart TD
     SocketServer -->|Registers with| Eureka
     Rider -->|REST / WS| SocketServer
     Driver <-->|WebSocket / STOMP / SockJS| SocketServer
-    SocketServer -->|POST /api/v1/booking/{id}| BookingService
+    SocketServer -->|"POST /api/v1/booking/{id}"| BookingService
     SocketServer <-->|Produces & Consumes Events| Kafka
     SocketServer -->|Data JPA / Persistence| MySQL
 ```
